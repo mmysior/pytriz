@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from pytriz!")
+from pytriz import contradictions
+
+__all__ = ["contradictions"]

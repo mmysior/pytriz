@@ -1,17 +1,38 @@
 [project]
 name = "pytriz"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Python package for TRIZ (Theory of Inventive Problem Solving) tools and techniques."
 readme = "README.md"
 authors = [
     { name = "mmysior", email = "mysior.marek@gmail.com" }
 ]
-requires-python = ">=3.13"
-dependencies = []
-
-[project.scripts]
-pytriz = "pytriz:main"
+requires-python = ">=3.12, <3.14"
+dependencies = [
+    "colorlog>=6.10.1",
+    "jinja2>=3.1.6",
+    "numpy>=2.4.6",
+    "pydantic>=2.13.4",
+    "pydantic-ai>=1.104.0",
+    "pydantic-settings>=2.14.1",
+    "python-frontmatter>=1.3.0",
+    "rank-bm25>=0.2.2",
+    "sentence-transformers>=5.5.1",
+]
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]
 build-backend = "uv_build"
+
+[project.urls]
+Homepage = "https://github.com/mmysior/pytriz"
+Issues = "https://github.com/mmysior/pytriz/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]

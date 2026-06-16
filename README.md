@@ -12,33 +12,37 @@ Requires Python 3.12+.
 
 ## Quick start
 
-### Data lookups (no API key needed)
-
 ```python
-from pytriz import contradictions
+from pytriz import TRIZStore
+
+store = TRIZStore()  # uses default embedding model, reads config from env
 
 # Find TRIZ principles for a contradiction
-principles = contradictions.get_principles_from_matrix(
+principles = store.get_principles_from_matrix(
     improving_parameters=[1, 3],
     preserving_parameters=[17, 23],
 )
 
 # Search parameters and principles by description
-params = contradictions.search_parameters("improves durability", top_k=5)
-principles = contradictions.search_principles("segmentation", top_k=5)
+params = store.search_parameters("improves durability", top_k=5)
+principles = store.search_principles("segmentation", top_k=5)
 ```
 
-Semantic search uses a local embedding model by default — no API key or internet connection required after the first run (the model is cached automatically).
+`TRIZStore` builds the indexed corpus on instantiation — create it once and reuse it across your application. Semantic search uses a local embedding model by default, no API key needed.
 
-### LLM-powered analysis
+## LLM-powered analysis
 
 ```python
 import asyncio
+from pytriz import TRIZStore
 from pytriz import contradictions
+
+store = TRIZStore()
 
 result = asyncio.run(
     contradictions.analyze_contradiction(
         "Increasing blade thickness improves durability but increases weight.",
+        store=store,
     )
 )
 
@@ -47,7 +51,7 @@ print(result.improving_parameter)
 print(result.preserving_parameter)
 ```
 
-Set your API key and preferred provider in a `.env` file:
+Set your LLM provider in a `.env` file:
 
 ```env
 DEFAULT_PROVIDER=openrouter    # openai | anthropic | mistral | openrouter | ollama | together
@@ -57,65 +61,28 @@ OPENROUTER_API_KEY=your-key-here
 
 ## Explicit configuration
 
-Pass `llm` and `embed_model` objects directly for full control — useful when building applications or MCP servers on top of PyTRIZ. When not provided, PyTRIZ falls back to environment variables.
-
-### LLM
+For full control — useful when building FastAPI apps, MCP servers, or any long-running service:
 
 ```python
-from pytriz import get_model, ModelSettings
+from pytriz import TRIZStore, get_embedder, get_model, ModelSettings
 
-# basic
-llm = get_model(provider="anthropic", model_name="claude-sonnet-4-6")
-
-# with model settings
+store = TRIZStore(
+    embed_model=get_embedder(provider="ollama", model="nomic-embed-text", url="http://my-server:11434"),
+)
 llm = get_model(
     provider="anthropic",
     model_name="claude-sonnet-4-6",
     settings=ModelSettings(temperature=0.2),
 )
-```
 
-Then pass to any LLM function:
-
-```python
-result = await contradictions.analyze_contradiction("my problem", llm=llm)
-result = await contradictions.extract_tcs("my description", llm=llm)
-```
-
-### Embeddings
-
-```python
-from pytriz import get_embedder
-
-embed_model = get_embedder(provider="huggingface", model="sentence-transformers/all-MiniLM-L6-v2")
-embed_model = get_embedder(provider="ollama", model="nomic-embed-text")
-embed_model = get_embedder(provider="ollama", model="nomic-embed-text", url="http://my-server:11434")
-embed_model = get_embedder(provider="openai", model="text-embedding-3-small")
-```
-
-Then pass to any search function:
-
-```python
-results = contradictions.search_principles("reduce friction", embed_model=embed_model)
-results = contradictions.search_parameters("improve durability", embed_model=embed_model)
-```
-
-### Fully explicit (no env vars needed)
-
-```python
-import asyncio
-from pytriz import contradictions, get_embedder, get_model, ModelSettings
-
-llm = get_model(provider="anthropic", model_name="claude-sonnet-4-6", settings=ModelSettings(temperature=0.2))
-embed_model = get_embedder(provider="ollama", model="nomic-embed-text", url="http://my-server:11434")
-
-result = asyncio.run(
-    contradictions.analyze_contradiction(
-        "Increasing blade thickness improves durability but increases weight.",
-        llm=llm,
-        embed_model=embed_model,
-    )
+result = await contradictions.analyze_contradiction(
+    "Increasing blade thickness improves durability but increases weight.",
+    store=store,
+    llm=llm,
 )
+```
+
+`store` and `llm` are independent — configure each separately and pass them where needed.
 
 ## Embedding providers
 
@@ -156,8 +123,6 @@ OPENAI_API_KEY=your-key-here
 ```
 
 ## LLM providers
-
-All providers are configured via environment variables:
 
 | Provider | `DEFAULT_PROVIDER` | Required env var |
 |---|---|---|

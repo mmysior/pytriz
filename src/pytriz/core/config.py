@@ -13,8 +13,8 @@ class Config(BaseSettings):
     # ==========================================
     # LLM Configuration
     # ==========================================
-    DEFAULT_PROVIDER: str = "openai"
-    DEFAULT_MODEL: str = "gpt-4.1"
+    DEFAULT_PROVIDER: str = "openrouter"
+    DEFAULT_MODEL: str = "qwen/qwen3.6-35b-a3b"
 
     # ==========================================
     # Semantic Search Configuration

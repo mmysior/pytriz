@@ -7,25 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1] - 2026-06-16
+## [0.2.0] - 2026-06-16
 
 ### Added
 
+- `TRIZStore` — the main entry point for indexed TRIZ corpus access. Instantiate once with an optional `embed_model`, reuse across your application (FastAPI, FastMCP, scripts)
 - Ollama embedding provider (`EMBEDDING_PROVIDER=ollama`) with configurable `OLLAMA_BASE_URL`
-- `OLLAMA_BASE_URL` config variable (default: `http://localhost:11434`), now also used by the Ollama LLM provider
-- `embed_model` kwarg (`Embedder` instance) on `search_parameters`, `search_principles`, `analyze_contradiction`, and `classify_principle` for explicit embedding config without env vars
-- `llm` kwarg (`LLModel` instance) on all LLM functions replacing `provider`/`model` string kwargs
-- `get_model`, `get_embedder`, `LLModel`, `Embedder` exported from top-level `pytriz` package
+- `OLLAMA_BASE_URL` config variable (default: `http://localhost:11434`), used by both the Ollama LLM and embedding providers
+- `llm: LLModel` kwarg on all LLM functions for explicit model configuration
+- `settings: ModelSettings` kwarg on `get_model` for controlling temperature, max tokens, etc.
+- `url` keyword-only kwarg on `get_embedder` and `get_model` for Ollama host override
+- `TRIZStore`, `get_model`, `get_embedder`, `Embedder`, `LLModel`, `ModelSettings` exported from top-level `pytriz`
 
 ### Changed
 
+- **Breaking:** Retrieval functions (`search_parameters`, `search_principles`, `get_all_parameters`, etc.) moved to `TRIZStore` — no longer available as module-level functions
+- **Breaking:** `analyze_contradiction` and `classify_principle` now require `store: TRIZStore` as a keyword argument
+- **Breaking:** LLM functions replace `provider`/`model` string kwargs with a single `llm: LLModel | None` kwarg
+- **Breaking:** Embedding provider `local` renamed to `huggingface` (`EMBEDDING_PROVIDER=huggingface`)
+- Default embedding model changed from `google/embeddinggemma-300m` (gated) to `sentence-transformers/all-MiniLM-L6-v2` (public)
 - Default LLM provider changed from `openai` (`gpt-4.1`) to `openrouter` (`qwen/qwen3.6-35b-a3b`)
-- Embedding provider `local` renamed to `huggingface` (`EMBEDDING_PROVIDER=huggingface`)
-- **Breaking:** LLM functions (`extract_tcs`, `formulate_tc`, `generate_solution`, `analyze_contradiction`, `classify_principle`) replace `provider`/`model` string kwargs with a single `llm: LLModel | None` kwarg
-
-### Fixed
-
-- Changed default embedding model from `google/embeddinggemma-300m` (gated, requires HF authentication) to `sentence-transformers/all-MiniLM-L6-v2` (public, no auth required)
+- `core/providers.py` renamed to `core/models.py`
 
 ## [0.1.0] - 2026-05-29
 
@@ -42,6 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LLM functions accept `provider` and `model` as string arguments
 - Modern type annotations throughout (`list`, `set`, `X | None` instead of `typing` generics)
 
-[unreleased]: https://github.com/mmysior/pytriz/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/mmysior/pytriz/compare/v0.1.0...v0.1.1
+[unreleased]: https://github.com/mmysior/pytriz/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mmysior/pytriz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mmysior/pytriz/releases/tag/v0.1.0

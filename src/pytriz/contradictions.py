@@ -1,18 +1,9 @@
-import csv
-import importlib.resources as pkg_resources
-import json
 import logging
-import random
-from functools import lru_cache
-from itertools import product
 
-import numpy as np
 from pydantic_ai import Agent
 
 from .core.config import config
-from .core.embedder import Embedder
 from .core.models import LLModel, get_model
-from .core.retriever import Retriever
 from .prompts import get_prompt
 from .schemas.contradictions import (
     ContradictionResult,
@@ -23,156 +14,9 @@ from .schemas.contradictions import (
     PrincipleSelection,
     TCModel,
 )
+from .store import TRIZStore
 
 logger = logging.getLogger(__name__)
-
-
-# ======================================================================================================================
-# Data Loading
-# ======================================================================================================================
-
-
-@lru_cache(maxsize=1)
-def _load_parameters() -> list[Parameter]:
-    ref = pkg_resources.files("pytriz.resources") / "parameters.json"
-    with pkg_resources.as_file(ref) as path:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    return [Parameter(**p) for p in data["parameters"]]
-
-
-@lru_cache(maxsize=1)
-def _load_principles() -> list[Principle]:
-    ref = pkg_resources.files("pytriz.resources") / "principles.json"
-    with pkg_resources.as_file(ref) as path:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    items = data if isinstance(data, list) else data["principles"]
-    return [
-        Principle(
-            id=int(p["id"]),
-            name=str(p["name"]),
-            description=str(p.get("description", "")),
-            rules=list(p.get("rules", [])),
-            hints=list(p.get("hints", [])),
-            examples=list(p.get("examples", [])),
-        )
-        for p in items
-    ]
-
-
-@lru_cache(maxsize=1)
-def _load_matrix() -> np.ndarray:
-    ref = pkg_resources.files("pytriz.resources") / "matrix_values.csv"
-    with pkg_resources.as_file(ref) as path:
-        with open(path, "r", encoding="utf-8") as f:
-            matrix_data = list(csv.reader(f, delimiter=";"))
-    matrix = np.array(matrix_data, dtype=object)
-    logger.debug("Loaded TRIZ matrix with shape %dx%d", *matrix.shape)
-    return matrix
-
-
-# ======================================================================================================================
-# Parameters & Principles
-# ======================================================================================================================
-
-
-@lru_cache(maxsize=1)
-def _get_param_retriever() -> Retriever:
-    return Retriever([p.text for p in _load_parameters()])
-
-
-@lru_cache(maxsize=1)
-def _get_principle_retriever() -> Retriever:
-    return Retriever([p.text for p in _load_principles()])
-
-
-def get_all_parameters() -> list[Parameter]:
-    return _load_parameters()
-
-
-def get_parameter_by_id(parameter_id: int) -> Parameter:
-    parameter = next((p for p in _load_parameters() if p.id == parameter_id), None)
-    if not parameter:
-        raise ValueError(f"Parameter with id {parameter_id} not found")
-    return parameter
-
-
-def search_parameters(query: str, top_k: int = 5, *, embed_model: Embedder | None = None) -> list[Parameter]:
-    params = _load_parameters()
-    retriever = Retriever([p.text for p in params], embed_model) if embed_model is not None else _get_param_retriever()
-    indices = retriever.search(query, top_k)
-    return [params[i] for i in indices]
-
-
-def get_all_principles() -> list[Principle]:
-    return _load_principles()
-
-
-def get_principle_by_id(principle_id: int) -> Principle:
-    principle = next((p for p in _load_principles() if p.id == principle_id), None)
-    if not principle:
-        raise ValueError(f"Principle with id {principle_id} not found")
-    return principle
-
-
-def get_principle_by_name(principle_name: str) -> Principle:
-    principle = next((p for p in _load_principles() if p.name.lower() == principle_name.lower()), None)
-    if not principle:
-        raise ValueError(f"Principle with name '{principle_name}' not found")
-    return principle
-
-
-def search_principles(query: str, top_k: int = 5, *, embed_model: Embedder | None = None) -> list[Principle]:
-    principles = _load_principles()
-    retriever = (
-        Retriever([p.text for p in principles], embed_model) if embed_model is not None else _get_principle_retriever()
-    )
-    indices = retriever.search(query, top_k)
-    return [principles[i] for i in indices]
-
-
-def get_random_principles(count: int = 4) -> list[Principle]:
-    all_principles = get_all_principles()
-    if count >= len(all_principles):
-        return all_principles
-    return random.sample(all_principles, count)
-
-
-# ======================================================================================================================
-# Contradiction Matrix
-# ======================================================================================================================
-
-
-def get_principles_from_matrix(improving_parameters: list[int], preserving_parameters: list[int]) -> list[Principle]:
-    if not all(isinstance(x, int) for x in improving_parameters + preserving_parameters):
-        raise TypeError("All parameter IDs must be integers")
-    if not all(x > 0 for x in improving_parameters + preserving_parameters):
-        raise ValueError("All parameter IDs must be positive integers")
-
-    matrix = _load_matrix()
-    all_principles = get_all_principles()
-    row_indices = [i - 1 for i in improving_parameters]
-    col_indices = [i - 1 for i in preserving_parameters]
-
-    principle_ids: set[int] = set()
-    for row, col in product(row_indices, col_indices):
-        if row == col or row >= matrix.shape[0] or col >= matrix.shape[1]:
-            continue
-        cell_value = matrix[row, col]
-        if cell_value and cell_value != "":
-            for p in cell_value.split(","):
-                try:
-                    principle_ids.add(int(p.strip()))
-                except (ValueError, AttributeError):
-                    continue
-
-    return [p for p in all_principles if p.id in sorted(principle_ids)]
-
-
-# ======================================================================================================================
-# LLM Generators
-# ======================================================================================================================
 
 
 def format_principle(principle: Principle) -> str:
@@ -247,8 +91,8 @@ async def generate_solution(
 async def analyze_contradiction(
     problem_summary: str,
     *,
+    store: TRIZStore,
     llm: LLModel | None = None,
-    embed_model: Embedder | None = None,
     retrieve_k: int = 5,
 ) -> ContradictionResult:
     tc = await formulate_tc(problem_summary, llm=llm)
@@ -256,7 +100,7 @@ async def analyze_contradiction(
     seen: set[int] = set()
     candidates: list[Parameter] = []
     for effect in (tc.positive_effect, tc.negative_effect):
-        for p in search_parameters(effect, retrieve_k, embed_model=embed_model):
+        for p in store.search_parameters(effect, retrieve_k):
             if p.id not in seen:
                 seen.add(p.id)
                 candidates.append(p)
@@ -303,11 +147,11 @@ async def analyze_contradiction(
 async def classify_principle(
     solution_summary: str,
     *,
+    store: TRIZStore,
     llm: LLModel | None = None,
-    embed_model: Embedder | None = None,
     retrieve_k: int = 5,
 ) -> Principle:
-    candidates = search_principles(solution_summary, retrieve_k, embed_model=embed_model)
+    candidates = store.search_principles(solution_summary, retrieve_k)
     if not candidates:
         raise ValueError("No principle candidates found for solution summary.")
 

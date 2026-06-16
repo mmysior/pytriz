@@ -13,11 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Ollama embedding provider (`EMBEDDING_PROVIDER=ollama`) with configurable `OLLAMA_BASE_URL`
 - `OLLAMA_BASE_URL` config variable (default: `http://localhost:11434`), now also used by the Ollama LLM provider
+- `embed_model` kwarg (`Embedder` instance) on `search_parameters`, `search_principles`, `analyze_contradiction`, and `classify_principle` for explicit embedding config without env vars
+- `llm` kwarg (`LLModel` instance) on all LLM functions replacing `provider`/`model` string kwargs
+- `get_model`, `get_embedder`, `LLModel`, `Embedder` exported from top-level `pytriz` package
 
 ### Changed
 
 - Default LLM provider changed from `openai` (`gpt-4.1`) to `openrouter` (`qwen/qwen3.6-35b-a3b`)
 - Embedding provider `local` renamed to `huggingface` (`EMBEDDING_PROVIDER=huggingface`)
+- **Breaking:** LLM functions (`extract_tcs`, `formulate_tc`, `generate_solution`, `analyze_contradiction`, `classify_principle`) replace `provider`/`model` string kwargs with a single `llm: LLModel | None` kwarg
 
 ### Fixed
 

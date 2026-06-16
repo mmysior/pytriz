@@ -10,7 +10,8 @@ import numpy as np
 from pydantic_ai import Agent
 
 from .core.config import config
-from .core.providers import get_model
+from .core.embedder import Embedder
+from .core.models import LLModel, get_model
 from .core.retriever import Retriever
 from .prompts import get_prompt
 from .schemas.contradictions import (
@@ -97,9 +98,10 @@ def get_parameter_by_id(parameter_id: int) -> Parameter:
     return parameter
 
 
-def search_parameters(query: str, top_k: int = 5) -> list[Parameter]:
+def search_parameters(query: str, top_k: int = 5, *, embed_model: Embedder | None = None) -> list[Parameter]:
     params = _load_parameters()
-    indices = _get_param_retriever().search(query, top_k)
+    retriever = Retriever([p.text for p in params], embed_model) if embed_model is not None else _get_param_retriever()
+    indices = retriever.search(query, top_k)
     return [params[i] for i in indices]
 
 
@@ -121,9 +123,12 @@ def get_principle_by_name(principle_name: str) -> Principle:
     return principle
 
 
-def search_principles(query: str, top_k: int = 5) -> list[Principle]:
+def search_principles(query: str, top_k: int = 5, *, embed_model: Embedder | None = None) -> list[Principle]:
     principles = _load_principles()
-    indices = _get_principle_retriever().search(query, top_k)
+    retriever = (
+        Retriever([p.text for p in principles], embed_model) if embed_model is not None else _get_principle_retriever()
+    )
+    indices = retriever.search(query, top_k)
     return [principles[i] for i in indices]
 
 
@@ -181,9 +186,13 @@ def format_principle(principle: Principle) -> str:
     return formatted
 
 
-async def extract_tcs(description: str, *, provider: str | None = None, model: str | None = None) -> Contradictions:
+def _resolve_llm(llm: LLModel | None) -> LLModel:
+    return llm or get_model(config.DEFAULT_PROVIDER, config.DEFAULT_MODEL)
+
+
+async def extract_tcs(description: str, *, llm: LLModel | None = None) -> Contradictions:
     agent = Agent(
-        model=get_model(provider or config.DEFAULT_PROVIDER, model or config.DEFAULT_MODEL),
+        model=_resolve_llm(llm),
         output_type=Contradictions,
         system_prompt=get_prompt("extract_tc_from_text").compile(),
     )
@@ -196,9 +205,9 @@ async def extract_tcs(description: str, *, provider: str | None = None, model: s
         raise ValueError(f"Error getting a response from the model: {e}")
 
 
-async def formulate_tc(trade_off: str, *, context: str | None = None, provider: str | None = None, model: str | None = None) -> TCModel:
+async def formulate_tc(trade_off: str, *, context: str | None = None, llm: LLModel | None = None) -> TCModel:
     agent = Agent(
-        model=get_model(provider or config.DEFAULT_PROVIDER, model or config.DEFAULT_MODEL),
+        model=_resolve_llm(llm),
         output_type=TCModel,
         system_prompt=get_prompt("formulate_tc").compile(context=context),
     )
@@ -216,11 +225,10 @@ async def generate_solution(
     principle: Principle,
     *,
     context: str | None = None,
-    provider: str | None = None,
-    model: str | None = None,
+    llm: LLModel | None = None,
 ) -> str:
     agent = Agent(
-        model=get_model(provider or config.DEFAULT_PROVIDER, model or config.DEFAULT_MODEL),
+        model=_resolve_llm(llm),
         output_type=str,
         system_prompt=get_prompt("generate_solution").compile(
             context=context,
@@ -239,16 +247,16 @@ async def generate_solution(
 async def analyze_contradiction(
     problem_summary: str,
     *,
-    provider: str | None = None,
-    model: str | None = None,
+    llm: LLModel | None = None,
+    embed_model: Embedder | None = None,
     retrieve_k: int = 5,
 ) -> ContradictionResult:
-    tc = await formulate_tc(problem_summary, provider=provider, model=model)
+    tc = await formulate_tc(problem_summary, llm=llm)
 
     seen: set[int] = set()
     candidates: list[Parameter] = []
     for effect in (tc.positive_effect, tc.negative_effect):
-        for p in search_parameters(effect, retrieve_k):
+        for p in search_parameters(effect, retrieve_k, embed_model=embed_model):
             if p.id not in seen:
                 seen.add(p.id)
                 candidates.append(p)
@@ -257,7 +265,7 @@ async def analyze_contradiction(
         raise ValueError(f"Not enough parameter candidates found for contradiction: {tc}")
 
     agent = Agent(
-        model=get_model(provider or config.DEFAULT_PROVIDER, model or config.DEFAULT_MODEL),
+        model=_resolve_llm(llm),
         output_type=ParameterPairSelection,
         system_prompt=get_prompt("rerank_parameters").compile(
             action=tc.action,
@@ -295,16 +303,16 @@ async def analyze_contradiction(
 async def classify_principle(
     solution_summary: str,
     *,
-    provider: str | None = None,
-    model: str | None = None,
+    llm: LLModel | None = None,
+    embed_model: Embedder | None = None,
     retrieve_k: int = 5,
 ) -> Principle:
-    candidates = search_principles(solution_summary, retrieve_k)
+    candidates = search_principles(solution_summary, retrieve_k, embed_model=embed_model)
     if not candidates:
         raise ValueError("No principle candidates found for solution summary.")
 
     agent = Agent(
-        model=get_model(provider or config.DEFAULT_PROVIDER, model or config.DEFAULT_MODEL),
+        model=_resolve_llm(llm),
         output_type=PrincipleSelection,
         system_prompt=get_prompt("rerank_principle").compile(
             candidates="\n\n".join(f"ID {p.id}: {p.text}" for p in candidates),

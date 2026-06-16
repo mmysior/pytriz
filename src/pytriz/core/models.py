@@ -16,7 +16,7 @@ from .config import config
 
 # Type definitions
 type LLModel = OpenAIChatModel | AnthropicModel | MistralModel
-type ModelFactoryFn = Callable[[str], LLModel]
+type ModelFactoryFn = Callable[..., LLModel]
 
 model_factories: dict[str, ModelFactoryFn] = {}
 
@@ -34,68 +34,71 @@ def register_model_provider(name: str):
 
 
 @register_model_provider("openai")
-def get_openai_model(model_name: str, **kwargs: Any) -> OpenAIChatModel:
+def get_openai_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> OpenAIChatModel:
     return OpenAIChatModel(
         model_name=model_name,
         provider=OpenAIProvider(api_key=config.OPENAI_API_KEY),
-        settings=ModelSettings(**kwargs),
+        settings=settings,
     )
 
 
 @register_model_provider("anthropic")
-def get_anthropic_model(model_name: str, **kwargs: Any) -> AnthropicModel:
+def get_anthropic_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> AnthropicModel:
     return AnthropicModel(
         model_name=model_name,
         provider=AnthropicProvider(api_key=config.ANTHROPIC_API_KEY),
-        settings=ModelSettings(**kwargs),
+        settings=settings,
     )
 
 
 @register_model_provider("together")
-def get_together_model(model_name: str, **kwargs: Any) -> OpenAIChatModel:
+def get_together_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> OpenAIChatModel:
     return OpenAIChatModel(
         model_name=model_name,
         provider=OpenAIProvider(
             base_url="https://api.together.xyz/v1",
             api_key=config.TOGETHER_API_KEY,
         ),
-        settings=ModelSettings(**kwargs),
+        settings=settings,
     )
 
 
 @register_model_provider("ollama")
-def get_ollama_model(model_name: str, **kwargs: Any) -> OpenAIChatModel:
+def get_ollama_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> OpenAIChatModel:
+    base_url = (url or config.OLLAMA_BASE_URL).rstrip("/")
     return OpenAIChatModel(
         model_name=model_name,
-        provider=OllamaProvider(base_url=f"{config.OLLAMA_BASE_URL}/v1"),
-        settings=ModelSettings(**kwargs),
+        provider=OllamaProvider(base_url=f"{base_url}/v1"),
+        settings=settings,
     )
 
 
 @register_model_provider("mistral")
-def get_mistral_model(model_name: str, **kwargs: Any) -> MistralModel:
+def get_mistral_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> MistralModel:
     return MistralModel(
         model_name=model_name,
         provider=MistralProvider(api_key=config.MISTRAL_API_KEY),
-        settings=ModelSettings(**kwargs),
+        settings=settings,
     )
 
 
 @register_model_provider("openrouter")
-def get_openrouter_model(model_name: str, **kwargs: Any) -> OpenRouterModel:
+def get_openrouter_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> OpenRouterModel:
     return OpenRouterModel(
         model_name=model_name,
         provider=OpenRouterProvider(api_key=config.OPENROUTER_API_KEY),
-        settings=ModelSettings(**kwargs),
+        settings=settings,
     )
 
 
 def get_model(
     provider: str = config.DEFAULT_PROVIDER,
     model_name: str = config.DEFAULT_MODEL,
-    **kwargs: Any,
+    *,
+    url: str | None = None,
+    settings: ModelSettings | None = None,
 ) -> LLModel:
     factory = model_factories.get(provider)
     if factory is None:
         raise ValueError(f"❌ Unsupported model provider: {provider}")
-    return factory(model_name, **kwargs)
+    return factory(model_name, url=url, settings=settings)

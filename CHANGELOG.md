@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-06-16
+## [0.2.0] - 2026-06-17
 
 ### Added
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `settings: ModelSettings` kwarg on `get_model` for controlling temperature, max tokens, etc.
 - `url` keyword-only kwarg on `get_embedder` and `get_model` for Ollama host override
 - `TRIZStore`, `get_model`, `get_embedder`, `Embedder`, `LLModel`, `ModelSettings` exported from top-level `pytriz`
+
+### Fixed
+
+- `get_embedder` and `get_model` now forward `url` only when `provider == "ollama"` — non-Ollama factories no longer receive an unexpected `url` kwarg
+- `url: str | None = None` removed from non-Ollama model factory signatures (`openai`, `anthropic`, `together`, `mistral`, `openrouter`)
+- `tests/test_contradictions.py` updated to use `TRIZStore` directly, matching the breaking change introduced in this release
 
 ### Changed
 

@@ -34,7 +34,7 @@ def register_model_provider(name: str):
 
 
 @register_model_provider("openai")
-def get_openai_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> OpenAIChatModel:
+def get_openai_model(model_name: str, *, settings: ModelSettings | None = None) -> OpenAIChatModel:
     return OpenAIChatModel(
         model_name=model_name,
         provider=OpenAIProvider(api_key=config.OPENAI_API_KEY),
@@ -43,7 +43,7 @@ def get_openai_model(model_name: str, *, url: str | None = None, settings: Model
 
 
 @register_model_provider("anthropic")
-def get_anthropic_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> AnthropicModel:
+def get_anthropic_model(model_name: str, *, settings: ModelSettings | None = None) -> AnthropicModel:
     return AnthropicModel(
         model_name=model_name,
         provider=AnthropicProvider(api_key=config.ANTHROPIC_API_KEY),
@@ -52,7 +52,7 @@ def get_anthropic_model(model_name: str, *, url: str | None = None, settings: Mo
 
 
 @register_model_provider("together")
-def get_together_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> OpenAIChatModel:
+def get_together_model(model_name: str, *, settings: ModelSettings | None = None) -> OpenAIChatModel:
     return OpenAIChatModel(
         model_name=model_name,
         provider=OpenAIProvider(
@@ -74,7 +74,7 @@ def get_ollama_model(model_name: str, *, url: str | None = None, settings: Model
 
 
 @register_model_provider("mistral")
-def get_mistral_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> MistralModel:
+def get_mistral_model(model_name: str, *, settings: ModelSettings | None = None) -> MistralModel:
     return MistralModel(
         model_name=model_name,
         provider=MistralProvider(api_key=config.MISTRAL_API_KEY),
@@ -83,7 +83,7 @@ def get_mistral_model(model_name: str, *, url: str | None = None, settings: Mode
 
 
 @register_model_provider("openrouter")
-def get_openrouter_model(model_name: str, *, url: str | None = None, settings: ModelSettings | None = None) -> OpenRouterModel:
+def get_openrouter_model(model_name: str, *, settings: ModelSettings | None = None) -> OpenRouterModel:
     return OpenRouterModel(
         model_name=model_name,
         provider=OpenRouterProvider(api_key=config.OPENROUTER_API_KEY),
@@ -101,4 +101,6 @@ def get_model(
     factory = model_factories.get(provider)
     if factory is None:
         raise ValueError(f"❌ Unsupported model provider: {provider}")
-    return factory(model_name, url=url, settings=settings)
+    if provider == "ollama":
+        return factory(model_name, url=url, settings=settings)
+    return factory(model_name, settings=settings)

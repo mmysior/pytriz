@@ -135,4 +135,6 @@ def get_embedder(
     if factory is None:
         raise ValueError(f"Unsupported embedding provider: {provider}")
     logger.info("Using %s embeddings: %s", provider, model)
-    return factory(model, url=url)
+    if provider == "ollama":
+        return factory(model, url=url)
+    return factory(model)

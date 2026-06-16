@@ -20,7 +20,7 @@ class Config(BaseSettings):
     # Semantic Search Configuration
     # ==========================================
     EMBEDDING_PROVIDER: Literal["local", "openai"] = "local"
-    EMBEDDING_MODEL: str = "google/embeddinggemma-300m"
+    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     # ==========================================
     # API Keys & Secrets

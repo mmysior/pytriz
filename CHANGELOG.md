@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-16
+
+### Added
+
+- Ollama embedding provider (`EMBEDDING_PROVIDER=ollama`) with configurable `OLLAMA_BASE_URL`
+- `OLLAMA_BASE_URL` config variable (default: `http://localhost:11434`), now also used by the Ollama LLM provider
+
+### Changed
+
+- Default LLM provider changed from `openai` (`gpt-4.1`) to `openrouter` (`qwen/qwen3.6-35b-a3b`)
+- Embedding provider `local` renamed to `huggingface` (`EMBEDDING_PROVIDER=huggingface`)
+
+### Fixed
+
+- Changed default embedding model from `google/embeddinggemma-300m` (gated, requires HF authentication) to `sentence-transformers/all-MiniLM-L6-v2` (public, no auth required)
+
 ## [0.1.0] - 2026-05-29
 
 ### Added
@@ -22,5 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LLM functions accept `provider` and `model` as string arguments
 - Modern type annotations throughout (`list`, `set`, `X | None` instead of `typing` generics)
 
-[unreleased]: https://github.com/mmysior/pytriz/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/mmysior/pytriz/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/mmysior/pytriz/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mmysior/pytriz/releases/tag/v0.1.0

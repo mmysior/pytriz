@@ -19,8 +19,13 @@ class Config(BaseSettings):
     # ==========================================
     # Semantic Search Configuration
     # ==========================================
-    EMBEDDING_PROVIDER: Literal["local", "openai"] = "local"
+    EMBEDDING_PROVIDER: Literal["huggingface", "openai", "ollama"] = "huggingface"
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+
+    # ==========================================
+    # Services Configuration
+    # ==========================================
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # ==========================================
     # API Keys & Secrets

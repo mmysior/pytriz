@@ -67,7 +67,7 @@ def get_together_model(model_name: str, **kwargs: Any) -> OpenAIChatModel:
 def get_ollama_model(model_name: str, **kwargs: Any) -> OpenAIChatModel:
     return OpenAIChatModel(
         model_name=model_name,
-        provider=OllamaProvider(base_url="http://localhost:11434/v1"),
+        provider=OllamaProvider(base_url=f"{config.OLLAMA_BASE_URL}/v1"),
         settings=ModelSettings(**kwargs),
     )
 

@@ -32,7 +32,7 @@ class Embedder:
 # Embedding provider registry
 # ---------------------------------------------------------------------------
 
-type EmbedderFactoryFn = Callable[[str], Embedder]
+type EmbedderFactoryFn = Callable[..., Embedder]
 
 embed_providers: dict[str, EmbedderFactoryFn] = {}
 
@@ -54,8 +54,8 @@ def register_embedding_provider(name: str):
 # ---------------------------------------------------------------------------
 
 
-@register_embedding_provider("local")
-def get_local_embedder(model: str) -> Embedder:
+@register_embedding_provider("huggingface")
+def get_huggingface_embedder(model: str) -> Embedder:
     encoder = SentenceTransformer(model, device="cpu")
     vector_size = encoder.get_embedding_dimension()
     if not vector_size:
@@ -68,6 +68,27 @@ def get_local_embedder(model: str) -> Embedder:
     def embed(texts: list[str]) -> np.ndarray:
         return encoder.encode(texts, convert_to_numpy=True, show_progress_bar=False)
 
+    return Embedder(model=model, vector_size=vector_size, embed_fn=embed)
+
+
+@register_embedding_provider("ollama")
+def get_ollama_embedder(model: str, *, url: str | None = None) -> Embedder:
+    base_url = (url or config.OLLAMA_BASE_URL).rstrip("/")
+
+    def embed(texts: list[str]) -> np.ndarray:
+        response = httpx.post(
+            f"{base_url}/api/embed",
+            json={"model": model, "input": texts},
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        return np.array(response.json()["embeddings"])
+
+    logger.debug("Probing Ollama embedding model to determine vector size...")
+    probe = embed(["dim_probe"])
+    vector_size = probe.shape[1]
+
+    logger.debug("Initialized Ollama embedder with model '%s' and vector size %d", model, vector_size)
     return Embedder(model=model, vector_size=vector_size, embed_fn=embed)
 
 
@@ -105,6 +126,8 @@ def get_openai_embedder(model: str) -> Embedder:
 def get_embedder(
     provider: str | None = None,
     model: str | None = None,
+    *,
+    url: str | None = None,
 ) -> Embedder:
     provider = provider or config.EMBEDDING_PROVIDER
     model = model or config.EMBEDDING_MODEL
@@ -112,4 +135,6 @@ def get_embedder(
     if factory is None:
         raise ValueError(f"Unsupported embedding provider: {provider}")
     logger.info("Using %s embeddings: %s", provider, model)
+    if provider == "ollama":
+        return factory(model, url=url)
     return factory(model)

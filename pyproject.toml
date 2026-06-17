@@ -1,6 +1,6 @@
 [project]
 name = "pytriz"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Python package for TRIZ (Theory of Inventive Problem Solving) tools and techniques."
 readme = "README.md"
 authors = [

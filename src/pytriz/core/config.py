@@ -13,14 +13,19 @@ class Config(BaseSettings):
     # ==========================================
     # LLM Configuration
     # ==========================================
-    DEFAULT_PROVIDER: str = "openai"
-    DEFAULT_MODEL: str = "gpt-4.1"
+    DEFAULT_PROVIDER: str = "openrouter"
+    DEFAULT_MODEL: str = "qwen/qwen3.6-35b-a3b"
 
     # ==========================================
     # Semantic Search Configuration
     # ==========================================
-    EMBEDDING_PROVIDER: Literal["local", "openai"] = "local"
-    EMBEDDING_MODEL: str = "google/embeddinggemma-300m"
+    EMBEDDING_PROVIDER: Literal["huggingface", "openai", "ollama"] = "huggingface"
+    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+
+    # ==========================================
+    # Services Configuration
+    # ==========================================
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # ==========================================
     # API Keys & Secrets

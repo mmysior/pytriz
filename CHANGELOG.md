@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- GitHub Actions workflows for automatic GitHub release creation and PyPI publishing on `v*` tag push
 - `TRIZStore` — the main entry point for indexed TRIZ corpus access. Instantiate once with an optional `embed_model`, reuse across your application (FastAPI, FastMCP, scripts)
 - Ollama embedding provider (`EMBEDDING_PROVIDER=ollama`) with configurable `OLLAMA_BASE_URL`
 - `OLLAMA_BASE_URL` config variable (default: `http://localhost:11434`), used by both the Ollama LLM and embedding providers

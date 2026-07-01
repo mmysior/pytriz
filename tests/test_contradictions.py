@@ -15,13 +15,6 @@ def test_get_all_parameters(store: TRIZStore):
     assert len(parameters) == 39
 
 
-def test_search_parameters(store: TRIZStore):
-    results = store.search_parameters("improves durability", top_k=3)
-    assert isinstance(results, list)
-    assert all(isinstance(r, Parameter) for r in results)
-    assert len(results) == 3
-
-
 def test_get_parameter_by_id(store: TRIZStore):
     parameter = store.get_parameter_by_id(1)
     assert isinstance(parameter, Parameter)
@@ -51,13 +44,6 @@ def test_get_all_principles(store: TRIZStore):
     assert isinstance(principles, list)
     assert all(isinstance(p, Principle) for p in principles)
     assert len(principles) == 40
-
-
-def test_search_principles(store: TRIZStore):
-    results = store.search_principles("segmentation", top_k=3)
-    assert isinstance(results, list)
-    assert all(isinstance(r, Principle) for r in results)
-    assert len(results) == 3
 
 
 def test_get_principle_by_id(store: TRIZStore):

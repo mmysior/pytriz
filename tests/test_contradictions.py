@@ -59,6 +59,22 @@ def test_get_principle_by_id(store: TRIZStore):
         assert str(e) == "Principle with id 999 not found"
 
 
+async def test_search_parameters(store: TRIZStore):
+    results = await store.search_parameters("weight", top_k=3)
+    assert isinstance(results, list)
+    assert len(results) == 3
+    assert all(isinstance(p, Parameter) for p in results)
+    assert any("weight" in p.name.lower() for p in results)
+
+
+async def test_search_principles(store: TRIZStore):
+    results = await store.search_principles("segmentation", top_k=3)
+    assert isinstance(results, list)
+    assert len(results) == 3
+    assert all(isinstance(p, Principle) for p in results)
+    assert any(p.name.lower() == "segmentation" for p in results)
+
+
 def test_get_principle_by_name(store: TRIZStore):
     principle = store.get_principle_by_name("Segmentation")
     assert isinstance(principle, Principle)

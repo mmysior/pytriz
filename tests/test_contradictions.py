@@ -15,13 +15,6 @@ def test_get_all_parameters(store: TRIZStore):
     assert len(parameters) == 39
 
 
-def test_search_parameters(store: TRIZStore):
-    results = store.search_parameters("improves durability", top_k=3)
-    assert isinstance(results, list)
-    assert all(isinstance(r, Parameter) for r in results)
-    assert len(results) == 3
-
-
 def test_get_parameter_by_id(store: TRIZStore):
     parameter = store.get_parameter_by_id(1)
     assert isinstance(parameter, Parameter)
@@ -53,13 +46,6 @@ def test_get_all_principles(store: TRIZStore):
     assert len(principles) == 40
 
 
-def test_search_principles(store: TRIZStore):
-    results = store.search_principles("segmentation", top_k=3)
-    assert isinstance(results, list)
-    assert all(isinstance(r, Principle) for r in results)
-    assert len(results) == 3
-
-
 def test_get_principle_by_id(store: TRIZStore):
     principle = store.get_principle_by_id(1)
     assert isinstance(principle, Principle)
@@ -71,6 +57,22 @@ def test_get_principle_by_id(store: TRIZStore):
         assert False, "Expected ValueError for non-existent principle ID"
     except ValueError as e:
         assert str(e) == "Principle with id 999 not found"
+
+
+async def test_search_parameters(store: TRIZStore):
+    results = await store.search_parameters("weight", top_k=3)
+    assert isinstance(results, list)
+    assert len(results) == 3
+    assert all(isinstance(p, Parameter) for p in results)
+    assert any("weight" in p.name.lower() for p in results)
+
+
+async def test_search_principles(store: TRIZStore):
+    results = await store.search_principles("segmentation", top_k=3)
+    assert isinstance(results, list)
+    assert len(results) == 3
+    assert all(isinstance(p, Principle) for p in results)
+    assert any(p.name.lower() == "segmentation" for p in results)
 
 
 def test_get_principle_by_name(store: TRIZStore):

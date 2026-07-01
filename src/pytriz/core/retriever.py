@@ -1,25 +1,40 @@
 import logging
 
 import numpy as np
+from pydantic_ai import Embedder
 from rank_bm25 import BM25Okapi
-
-from .embedder import Embedder, get_embedder
 
 logger = logging.getLogger(__name__)
 
 
 class Retriever:
+    """BM25 lexical search, optionally fused with dense embeddings if an `Embedder` is provided."""
+
     def __init__(self, texts: list[str], embedder: Embedder | None = None):
-        self._embedder = embedder or get_embedder()
-        logger.info("Building retriever with model: %s", self._embedder.model)
+        self._embedder = embedder
         self._texts = texts
         self._bm25 = BM25Okapi([t.lower().split() for t in texts])
-        self._corpus_vecs: np.ndarray = self._embedder.embed(texts)
+        self._corpus_vecs: np.ndarray | None = None
+        if embedder is not None:
+            logger.info("Retriever will use embedder: %s", embedder.model)
 
-    def search(self, query: str, top_k: int = 5) -> list[int]:
+    async def ensure_index(self) -> np.ndarray:
+        """Compute and cache corpus embeddings if not already cached. Safe to call ahead of time to avoid paying this cost on first search."""
+        assert self._embedder is not None
+        if self._corpus_vecs is None:
+            result = await self._embedder.embed_documents(self._texts)
+            self._corpus_vecs = np.array(result.embeddings, dtype=np.float32)
+        return self._corpus_vecs
+
+    async def search(self, query: str, top_k: int = 5) -> list[int]:
         bm25_scores = np.array(self._bm25.get_scores(query.lower().split()), dtype=np.float32)
-        query_vec = self._embedder.embed([query])[0]
-        dense_scores = (self._corpus_vecs @ query_vec).astype(np.float32)
+        if self._embedder is None:
+            return np.argsort(bm25_scores)[::-1][:top_k].tolist()
+
+        corpus_vecs = await self.ensure_index()
+        result = await self._embedder.embed_query(query)
+        query_vec = np.array(result.embeddings[0], dtype=np.float32)
+        dense_scores = (corpus_vecs @ query_vec).astype(np.float32)
         fused = self._rrf([bm25_scores, dense_scores])
         return np.argsort(fused)[::-1][:top_k].tolist()
 

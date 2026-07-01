@@ -1,9 +1,8 @@
 import logging
 
 from pydantic_ai import Agent
+from pydantic_ai.models import Model
 
-from .core.config import config
-from .core.models import LLModel, get_model
 from .prompts import get_prompt
 from .schemas.contradictions import (
     ContradictionResult,
@@ -30,13 +29,9 @@ def format_principle(principle: Principle) -> str:
     return formatted
 
 
-def _resolve_llm(llm: LLModel | None) -> LLModel:
-    return llm or get_model(config.DEFAULT_PROVIDER, config.DEFAULT_MODEL)
-
-
-async def extract_tcs(description: str, *, llm: LLModel | None = None) -> Contradictions:
+async def extract_tcs(description: str, *, llm: Model | str) -> Contradictions:
     agent = Agent(
-        model=_resolve_llm(llm),
+        model=llm,
         output_type=Contradictions,
         system_prompt=get_prompt("extract_tc_from_text").compile(),
     )
@@ -49,9 +44,9 @@ async def extract_tcs(description: str, *, llm: LLModel | None = None) -> Contra
         raise ValueError(f"Error getting a response from the model: {e}")
 
 
-async def formulate_tc(trade_off: str, *, context: str | None = None, llm: LLModel | None = None) -> TCModel:
+async def formulate_tc(trade_off: str, *, context: str | None = None, llm: Model | str) -> TCModel:
     agent = Agent(
-        model=_resolve_llm(llm),
+        model=llm,
         output_type=TCModel,
         system_prompt=get_prompt("formulate_tc").compile(context=context),
     )
@@ -69,10 +64,10 @@ async def generate_solution(
     principle: Principle,
     *,
     context: str | None = None,
-    llm: LLModel | None = None,
+    llm: Model | str,
 ) -> str:
     agent = Agent(
-        model=_resolve_llm(llm),
+        model=llm,
         output_type=str,
         system_prompt=get_prompt("generate_solution").compile(
             context=context,
@@ -92,7 +87,7 @@ async def analyze_contradiction(
     problem_summary: str,
     *,
     store: TRIZStore,
-    llm: LLModel | None = None,
+    llm: Model | str,
     retrieve_k: int = 5,
 ) -> ContradictionResult:
     tc = await formulate_tc(problem_summary, llm=llm)
@@ -109,7 +104,7 @@ async def analyze_contradiction(
         raise ValueError(f"Not enough parameter candidates found for contradiction: {tc}")
 
     agent = Agent(
-        model=_resolve_llm(llm),
+        model=llm,
         output_type=ParameterPairSelection,
         system_prompt=get_prompt("rerank_parameters").compile(
             action=tc.action,
@@ -148,7 +143,7 @@ async def classify_principle(
     solution_summary: str,
     *,
     store: TRIZStore,
-    llm: LLModel | None = None,
+    llm: Model | str,
     retrieve_k: int = 5,
 ) -> Principle:
     candidates = await store.search_principles(solution_summary, retrieve_k)
@@ -156,7 +151,7 @@ async def classify_principle(
         raise ValueError("No principle candidates found for solution summary.")
 
     agent = Agent(
-        model=_resolve_llm(llm),
+        model=llm,
         output_type=PrincipleSelection,
         system_prompt=get_prompt("rerank_principle").compile(
             candidates="\n\n".join(f"ID {p.id}: {p.text}" for p in candidates),

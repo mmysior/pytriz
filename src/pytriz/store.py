@@ -69,6 +69,7 @@ class TRIZStore:
     """Indexed TRIZ corpus. Instantiate once and reuse across your application."""
 
     def __init__(self, embed_model: Embedder | None = None) -> None:
+        self._embed_model = embed_model
         self._parameters = _load_parameters()
         self._principles = _load_principles()
         self._param_retriever = Retriever([p.text for p in self._parameters], embed_model)
@@ -77,6 +78,12 @@ class TRIZStore:
             "TRIZStore initialized (%s)",
             f"embedder: {embed_model.model}" if embed_model else "lexical search only",
         )
+
+    async def ensure_index(self) -> None:
+        """Precompute embeddings for parameters and principles, if an embedder is configured."""
+        if self._embed_model is not None:
+            await self._param_retriever.ensure_index()
+            await self._principle_retriever.ensure_index()
 
     # --- Parameters ---
 

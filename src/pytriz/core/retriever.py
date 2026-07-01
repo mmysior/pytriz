@@ -18,7 +18,8 @@ class Retriever:
         if embedder is not None:
             logger.info("Retriever will use embedder: %s", embedder.model)
 
-    async def _get_corpus_vecs(self) -> np.ndarray:
+    async def ensure_index(self) -> np.ndarray:
+        """Compute and cache corpus embeddings if not already cached. Safe to call ahead of time to avoid paying this cost on first search."""
         assert self._embedder is not None
         if self._corpus_vecs is None:
             result = await self._embedder.embed_documents(self._texts)
@@ -30,7 +31,7 @@ class Retriever:
         if self._embedder is None:
             return np.argsort(bm25_scores)[::-1][:top_k].tolist()
 
-        corpus_vecs = await self._get_corpus_vecs()
+        corpus_vecs = await self.ensure_index()
         result = await self._embedder.embed_query(query)
         query_vec = np.array(result.embeddings[0], dtype=np.float32)
         dense_scores = (corpus_vecs @ query_vec).astype(np.float32)

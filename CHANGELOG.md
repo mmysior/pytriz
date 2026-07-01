@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-01
+
+### Added
+
+- `Retriever.ensure_index()` / `TRIZStore.ensure_index()` — precompute and cache embeddings ahead of time (e.g. at service startup) instead of paying the cost on the first search
+- `pytest-asyncio` dev dependency and `asyncio_mode = "auto"` for native async test support
+
+### Changed
+
+- **Breaking:** Embeddings now rely directly on `pydantic_ai.Embedder` instead of a custom `core/embedder.py` wrapper; `get_embedder` moved to `core/providers.py`
+- **Breaking:** LLM model construction now relies directly on `pydantic_ai.models.Model` instead of the custom `LLModel`; `core/models.py` renamed to `core/providers.py`, `get_model` moved there too
+- **Breaking:** Configuration via environment variables / `.env` (`pydantic-settings`) removed — `get_model` and `get_embedder` now take explicit `base_url`/`api_key` arguments instead
+- **Breaking:** Top-level `pytriz` no longer exports `Embedder`, `LLModel`, or `ModelSettings` — these are unmodified `pydantic_ai` types with no pytriz-specific behavior; import them directly from `pydantic_ai` instead
+- Removed `<2.0.0` upper bound on `pydantic-ai` dependency
+
+### Removed
+
+- `colorlog` and the custom `core/logging.py` logging setup
+- `pydantic-settings` dependency and `core/config.py`
+- `sentence-transformers` dependency — embeddings are now provided entirely through `pydantic_ai.Embedder` backends
+
 ## [0.2.1] - 2026-07-01
 
 ### Fixed
@@ -57,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LLM functions accept `provider` and `model` as string arguments
 - Modern type annotations throughout (`list`, `set`, `X | None` instead of `typing` generics)
 
-[unreleased]: https://github.com/mmysior/pytriz/compare/v0.2.1...HEAD
+[unreleased]: https://github.com/mmysior/pytriz/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mmysior/pytriz/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/mmysior/pytriz/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mmysior/pytriz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mmysior/pytriz/releases/tag/v0.1.0

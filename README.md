@@ -94,9 +94,10 @@ For providers pydantic-ai supports natively but `get_model` doesn't wrap (Cohere
 For full control — useful when building FastAPI apps, MCP servers, or any long-running service:
 
 ```python
-from pytriz import TRIZStore, get_embedder, get_model, ModelSettings
+from pytriz import TRIZStore, get_embedder, get_model
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
+from pydantic_ai.settings import ModelSettings
 
 store = TRIZStore(
     embed_model=get_embedder("nomic-embed-text", base_url="http://my-server:11434/v1"),

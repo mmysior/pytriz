@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-01
+
+### Fixed
+
+- Pin `pydantic-ai` to `<2.0.0` — `pydantic-ai` 2.x no longer bundles the `mistral` extra by default, which caused `ModuleNotFoundError: No module named 'mistralai'` for consumers whose resolver picked up 2.x
+
 ## [0.2.0] - 2026-06-17
 
 ### Added
@@ -51,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LLM functions accept `provider` and `model` as string arguments
 - Modern type annotations throughout (`list`, `set`, `X | None` instead of `typing` generics)
 
-[unreleased]: https://github.com/mmysior/pytriz/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/mmysior/pytriz/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mmysior/pytriz/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mmysior/pytriz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mmysior/pytriz/releases/tag/v0.1.0

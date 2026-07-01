@@ -1,6 +1,6 @@
 [project]
 name = "pytriz"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Python package for TRIZ (Theory of Inventive Problem Solving) tools and techniques."
 readme = "README.md"
 authors = [
@@ -12,7 +12,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "numpy>=2.4.6",
     "pydantic>=2.13.4",
-    "pydantic-ai>=1.104.0",
+    "pydantic-ai>=1.104.0,<2.0.0",
     "pydantic-settings>=2.14.1",
     "python-frontmatter>=1.3.0",
     "rank-bm25>=0.2.2",

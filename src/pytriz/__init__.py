@@ -1,7 +1,8 @@
+from pydantic_ai import Embedder
 from pydantic_ai.settings import ModelSettings
 
 from . import contradictions
-from .core.embedder import Embedder, get_embedder
+from .core.embedder import get_embedder
 from .core.models import LLModel, get_model
 from .store import TRIZStore
 

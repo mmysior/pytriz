@@ -1,140 +1,26 @@
 import logging
-from functools import wraps
-from typing import Any, Callable
 
-import httpx
-import numpy as np
-from sentence_transformers import SentenceTransformer
-
-from .config import config
+from pydantic_ai import Embedder
+from pydantic_ai.embeddings.openai import OpenAIEmbeddingModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Embedder class
-# ---------------------------------------------------------------------------
+def get_embedder(model: str, *, base_url: str | None = None, api_key: str | None = None) -> Embedder:
+    """Build a pydantic-ai `Embedder`.
 
+    - Pass a pydantic-ai model string (e.g. `"openai:text-embedding-3-small"`,
+      `"cohere:embed-v4.0"`) to use one of its built-in providers directly.
+    - Pass `base_url` (and optionally `api_key`) to target any OpenAI-compatible
+      embeddings endpoint — Ollama, LM Studio, vLLM, etc. — with a bare model name
+      (e.g. `get_embedder("nomic-embed-text", base_url="http://localhost:11434/v1")`).
 
-class Embedder:
-    """Wraps an embedding provider with model name and vector size."""
-
-    def __init__(self, model: str, vector_size: int, embed_fn: Callable[[list[str]], np.ndarray]):
-        self.model = model
-        self.vector_size = vector_size
-        self._embed_fn = embed_fn
-
-    def embed(self, texts: list[str]) -> np.ndarray:
-        return self._embed_fn(texts)
-
-
-# ---------------------------------------------------------------------------
-# Embedding provider registry
-# ---------------------------------------------------------------------------
-
-type EmbedderFactoryFn = Callable[..., Embedder]
-
-embed_providers: dict[str, EmbedderFactoryFn] = {}
-
-
-def register_embedding_provider(name: str):
-    def decorator(func: EmbedderFactoryFn):
-        @wraps(func)
-        def wrapper(model: str, **kwargs: Any) -> Embedder:
-            return func(model, **kwargs)
-
-        embed_providers[name] = wrapper
-        return wrapper
-
-    return decorator
-
-
-# ---------------------------------------------------------------------------
-# Providers
-# ---------------------------------------------------------------------------
-
-
-@register_embedding_provider("huggingface")
-def get_huggingface_embedder(model: str) -> Embedder:
-    encoder = SentenceTransformer(model, device="cpu")
-    vector_size = encoder.get_embedding_dimension()
-    if not vector_size:
-        logger.debug("Probing local embedding model to determine vector size...")
-        probe = encoder.encode(["dim_probe"], convert_to_numpy=True)
-        vector_size = probe.shape[1]
-
-    logger.debug("Initialized local embedder with model '%s' and vector size %d", model, vector_size)
-
-    def embed(texts: list[str]) -> np.ndarray:
-        return encoder.encode(texts, convert_to_numpy=True, show_progress_bar=False)
-
-    return Embedder(model=model, vector_size=vector_size, embed_fn=embed)
-
-
-@register_embedding_provider("ollama")
-def get_ollama_embedder(model: str, *, url: str | None = None) -> Embedder:
-    base_url = (url or config.OLLAMA_BASE_URL).rstrip("/")
-
-    def embed(texts: list[str]) -> np.ndarray:
-        response = httpx.post(
-            f"{base_url}/api/embed",
-            json={"model": model, "input": texts},
-            timeout=60.0,
-        )
-        response.raise_for_status()
-        return np.array(response.json()["embeddings"])
-
-    logger.debug("Probing Ollama embedding model to determine vector size...")
-    probe = embed(["dim_probe"])
-    vector_size = probe.shape[1]
-
-    logger.debug("Initialized Ollama embedder with model '%s' and vector size %d", model, vector_size)
-    return Embedder(model=model, vector_size=vector_size, embed_fn=embed)
-
-
-@register_embedding_provider("openai")
-def get_openai_embedder(model: str) -> Embedder:
-    if not config.OPENAI_API_KEY:
-        raise ValueError("OPENAI_API_KEY is required when EMBEDDING_PROVIDER=openai")
-
-    def embed(texts: list[str]) -> np.ndarray:
-        response = httpx.post(
-            "https://api.openai.com/v1/embeddings",
-            headers={"Authorization": f"Bearer {config.OPENAI_API_KEY}"},
-            json={"input": texts, "model": model},
-            timeout=30.0,
-        )
-        response.raise_for_status()
-        data = response.json()["data"]
-        sorted_embeddings = sorted(data, key=lambda x: x["index"])
-        return np.array([item["embedding"] for item in sorted_embeddings])
-
-    # Probe once to discover vector size
-    logger.debug("Probing OpenAI embedding model to determine vector size...")
-    probe = embed(["dim_probe"])
-    vector_size = probe.shape[1]
-
-    logger.debug("Initialized OpenAI embedding model vector size: %d", vector_size)
-    return Embedder(model=model, vector_size=vector_size, embed_fn=embed)
-
-
-# ---------------------------------------------------------------------------
-# Factory
-# ---------------------------------------------------------------------------
-
-
-def get_embedder(
-    provider: str | None = None,
-    model: str | None = None,
-    *,
-    url: str | None = None,
-) -> Embedder:
-    provider = provider or config.EMBEDDING_PROVIDER
-    model = model or config.EMBEDDING_MODEL
-    factory = embed_providers.get(provider)
-    if factory is None:
-        raise ValueError(f"Unsupported embedding provider: {provider}")
-    logger.info("Using %s embeddings: %s", provider, model)
-    if provider == "ollama":
-        return factory(model, url=url)
-    return factory(model)
+    For anything else pydantic-ai supports (Bedrock, Google, VoyageAI, local
+    sentence-transformers, or a custom `EmbeddingModel`), construct a
+    `pydantic_ai.Embedder` directly and pass it wherever an `Embedder` is expected.
+    """
+    if base_url is not None:
+        provider = OpenAIProvider(base_url=base_url, api_key=api_key)
+        return Embedder(OpenAIEmbeddingModel(model, provider=provider))
+    return Embedder(model)

@@ -7,8 +7,8 @@ from functools import lru_cache
 from itertools import product
 
 import numpy as np
+from pydantic_ai import Embedder
 
-from .core.embedder import Embedder, get_embedder
 from .core.retriever import Retriever
 from .schemas.contradictions import Parameter, Principle
 
@@ -69,12 +69,14 @@ class TRIZStore:
     """Indexed TRIZ corpus. Instantiate once and reuse across your application."""
 
     def __init__(self, embed_model: Embedder | None = None) -> None:
-        embedder = embed_model or get_embedder()
         self._parameters = _load_parameters()
         self._principles = _load_principles()
-        self._param_retriever = Retriever([p.text for p in self._parameters], embedder)
-        self._principle_retriever = Retriever([p.text for p in self._principles], embedder)
-        logger.info("TRIZStore initialized with embedder: %s", embedder.model)
+        self._param_retriever = Retriever([p.text for p in self._parameters], embed_model)
+        self._principle_retriever = Retriever([p.text for p in self._principles], embed_model)
+        logger.info(
+            "TRIZStore initialized (%s)",
+            f"embedder: {embed_model.model}" if embed_model else "lexical search only",
+        )
 
     # --- Parameters ---
 
@@ -87,8 +89,8 @@ class TRIZStore:
             raise ValueError(f"Parameter with id {parameter_id} not found")
         return parameter
 
-    def search_parameters(self, query: str, top_k: int = 5) -> list[Parameter]:
-        indices = self._param_retriever.search(query, top_k)
+    async def search_parameters(self, query: str, top_k: int = 5) -> list[Parameter]:
+        indices = await self._param_retriever.search(query, top_k)
         return [self._parameters[i] for i in indices]
 
     # --- Principles ---
@@ -108,8 +110,8 @@ class TRIZStore:
             raise ValueError(f"Principle with name '{principle_name}' not found")
         return principle
 
-    def search_principles(self, query: str, top_k: int = 5) -> list[Principle]:
-        indices = self._principle_retriever.search(query, top_k)
+    async def search_principles(self, query: str, top_k: int = 5) -> list[Principle]:
+        indices = await self._principle_retriever.search(query, top_k)
         return [self._principles[i] for i in indices]
 
     def get_random_principles(self, count: int = 4) -> list[Principle]:

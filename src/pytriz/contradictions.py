@@ -100,7 +100,7 @@ async def analyze_contradiction(
     seen: set[int] = set()
     candidates: list[Parameter] = []
     for effect in (tc.positive_effect, tc.negative_effect):
-        for p in store.search_parameters(effect, retrieve_k):
+        for p in await store.search_parameters(effect, retrieve_k):
             if p.id not in seen:
                 seen.add(p.id)
                 candidates.append(p)
@@ -151,7 +151,7 @@ async def classify_principle(
     llm: LLModel | None = None,
     retrieve_k: int = 5,
 ) -> Principle:
-    candidates = store.search_principles(solution_summary, retrieve_k)
+    candidates = await store.search_principles(solution_summary, retrieve_k)
     if not candidates:
         raise ValueError("No principle candidates found for solution summary.")
 

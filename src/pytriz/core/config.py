@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,12 +13,6 @@ class Config(BaseSettings):
     # ==========================================
     DEFAULT_PROVIDER: str = "openrouter"
     DEFAULT_MODEL: str = "qwen/qwen3.6-35b-a3b"
-
-    # ==========================================
-    # Semantic Search Configuration
-    # ==========================================
-    EMBEDDING_PROVIDER: Literal["huggingface", "openai", "ollama"] = "huggingface"
-    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     # ==========================================
     # Services Configuration

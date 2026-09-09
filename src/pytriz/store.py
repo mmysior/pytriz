@@ -10,7 +10,7 @@ import numpy as np
 from pydantic_ai import Embedder
 
 from .core.retriever import Retriever
-from .schemas.contradictions import Parameter, Principle
+from .schemas.contradictions import Parameter, Principle, Separation
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,32 @@ def _load_principles() -> list[Principle]:
 
 
 @lru_cache(maxsize=1)
+def _load_separations() -> list[Separation]:
+    ref = pkg_resources.files("pytriz.resources") / "separations.json"
+    with pkg_resources.as_file(ref) as path:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+    principles_by_id = {principle.id: principle for principle in _load_principles()}
+    separations: list[Separation] = []
+    for separation in data["separations"]:
+        principle_ids = separation.get("principle_ids", [])
+        missing_ids = [principle_id for principle_id in principle_ids if principle_id not in principles_by_id]
+        if missing_ids:
+            raise ValueError(f"Separation '{separation['id']}' references unknown principle IDs: {missing_ids}")
+        separations.append(
+            Separation(
+                id=separation["id"],
+                name=separation["name"],
+                description=separation.get("description", ""),
+                guidelines=list(separation.get("guidelines", [])),
+                principles=[principles_by_id[principle_id] for principle_id in principle_ids],
+            )
+        )
+    return separations
+
+
+@lru_cache(maxsize=1)
 def _load_matrix() -> np.ndarray:
     ref = pkg_resources.files("pytriz.resources") / "matrix_values.csv"
     with pkg_resources.as_file(ref) as path:
@@ -72,18 +98,21 @@ class TRIZStore:
         self._embed_model = embed_model
         self._parameters = _load_parameters()
         self._principles = _load_principles()
+        self._separations = _load_separations()
         self._param_retriever = Retriever([p.text for p in self._parameters], embed_model)
         self._principle_retriever = Retriever([p.text for p in self._principles], embed_model)
+        self._separation_retriever = Retriever([s.text for s in self._separations], embed_model)
         logger.info(
             "TRIZStore initialized (%s)",
             f"embedder: {embed_model.model}" if embed_model else "lexical search only",
         )
 
     async def ensure_index(self) -> None:
-        """Precompute embeddings for parameters and principles, if an embedder is configured."""
+        """Precompute embeddings for parameters, principles, and separations, if configured."""
         if self._embed_model is not None:
             await self._param_retriever.ensure_index()
             await self._principle_retriever.ensure_index()
+            await self._separation_retriever.ensure_index()
 
     # --- Parameters ---
 
@@ -125,6 +154,27 @@ class TRIZStore:
         if count >= len(self._principles):
             return self._principles
         return random.sample(self._principles, count)
+
+    # --- Separations ---
+
+    def get_all_separations(self) -> list[Separation]:
+        return self._separations
+
+    def get_separation_by_id(self, separation_id: int) -> Separation:
+        separation = next((s for s in self._separations if s.id == separation_id), None)
+        if not separation:
+            raise ValueError(f"Separation with id {separation_id} not found")
+        return separation
+
+    def get_separation_by_name(self, separation_name: str) -> Separation:
+        separation = next((s for s in self._separations if s.name.lower() == separation_name.lower()), None)
+        if not separation:
+            raise ValueError(f"Separation with name '{separation_name}' not found")
+        return separation
+
+    async def search_separations(self, query: str, top_k: int = 5) -> list[Separation]:
+        indices = await self._separation_retriever.search(query, top_k)
+        return [self._separations[i] for i in indices]
 
     # --- Contradiction matrix ---
 

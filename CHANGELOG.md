@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Five physical-contradiction separation principles in `TRIZStore`, with application guidelines and direct references to their recommended inventive principles
+- Separation lookup and search methods: `get_all_separations`, `get_separation_by_id`, `get_separation_by_name`, and `search_separations`
+
+### Changed
+
+- Reorganized tests to mirror the package structure: renamed `test_contradictions.py` to `test_store.py` and moved retriever tests to `tests/core/`
+
 ## [0.3.0] - 2026-07-01
 
 ### Added

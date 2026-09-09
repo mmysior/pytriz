@@ -31,6 +31,27 @@ class Principle(BaseModel):
         return "\n".join(parts)
 
 
+class Separation(BaseModel):
+    id: str
+    name: str = Field(..., description="The name of the separation principle.")
+    description: str = Field("", description="A brief description of the separation principle.")
+    guidelines: list[str] = Field(default_factory=list, description="Guidelines for applying the separation principle.")
+    principles: list[Principle] = Field(
+        default_factory=list,
+        description="Inventive principles recommended for applying this separation principle.",
+    )
+
+    @computed_field
+    @property
+    def text(self) -> str:
+        parts = [self.name, self.description]
+        if self.guidelines:
+            parts.append("Guidelines: " + "; ".join(self.guidelines))
+        if self.principles:
+            parts.append("Recommended inventive principles: " + "; ".join(p.name for p in self.principles))
+        return "\n".join(parts)
+
+
 class Parameter(BaseModel):
     id: int
     name: str = Field(..., description="The name of the parameter.")

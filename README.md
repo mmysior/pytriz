@@ -27,9 +27,26 @@ principles = store.get_principles_from_matrix(
 # Search parameters and principles by description
 params = asyncio.run(store.search_parameters("improves durability", top_k=5))
 principles = asyncio.run(store.search_principles("segmentation", top_k=5))
+
+# Look up a physical-contradiction separation principle and its recommended
+# inventive principles
+separation = store.get_separation_by_id("01")
+recommended_principles = separation.principles
 ```
 
 `TRIZStore` builds the BM25 lexical index on instantiation — create it once and reuse it across your application. Passing an `embed_model` (see below) fuses in dense semantic search on top; embeddings are computed lazily on first search and cached from then on, or you can precompute them upfront with `await store.ensure_index()`.
+
+## Separation principles
+
+The store includes five separation principles for physical contradictions: separation in space, time, relation (conditions), direction, and at the system level. Each `Separation` includes its application guidelines and direct references to the recommended `Principle` objects.
+
+```python
+separation = store.get_separation_by_name("Separation in time")
+print(separation.guidelines)
+print([principle.name for principle in separation.principles])
+
+results = asyncio.run(store.search_separations("different moments in time", top_k=3))
+```
 
 ## Semantic search
 

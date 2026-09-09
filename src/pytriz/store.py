@@ -160,10 +160,10 @@ class TRIZStore:
     def get_all_separations(self) -> list[Separation]:
         return self._separations
 
-    def get_separation_by_id(self, separation_id: str) -> Separation:
+    def get_separation_by_id(self, separation_id: int) -> Separation:
         separation = next((s for s in self._separations if s.id == separation_id), None)
         if not separation:
-            raise ValueError(f"Separation with id '{separation_id}' not found")
+            raise ValueError(f"Separation with id {separation_id} not found")
         return separation
 
     def get_separation_by_name(self, separation_name: str) -> Separation:

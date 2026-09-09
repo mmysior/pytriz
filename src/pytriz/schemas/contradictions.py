@@ -32,7 +32,7 @@ class Principle(BaseModel):
 
 
 class Separation(BaseModel):
-    id: str
+    id: int
     name: str = Field(..., description="The name of the separation principle.")
     description: str = Field("", description="A brief description of the separation principle.")
     guidelines: list[str] = Field(default_factory=list, description="Guidelines for applying the separation principle.")

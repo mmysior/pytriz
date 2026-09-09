@@ -30,7 +30,7 @@ principles = asyncio.run(store.search_principles("segmentation", top_k=5))
 
 # Look up a physical-contradiction separation principle and its recommended
 # inventive principles
-separation = store.get_separation_by_id("01")
+separation = store.get_separation_by_id(1)
 recommended_principles = separation.principles
 ```
 

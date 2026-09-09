@@ -2,7 +2,7 @@
   "source": "MATRIZ TRIZ Knowledge Base (https://wiki.matriz.org), Creative Commons license (attribution required)",
   "separations": [
     {
-      "id": "01",
+      "id": 1,
       "name": "Separation in space",
       "description": "Apply contradictory demands in different places in space.",
       "guidelines": [
@@ -19,7 +19,7 @@
       ]
     },
     {
-      "id": "02",
+      "id": 2,
       "name": "Separation in time",
       "description": "Apply contradictory demands at different moments in time.",
       "guidelines": [
@@ -35,7 +35,7 @@
       ]
     },
     {
-      "id": "03",
+      "id": 3,
       "name": "Separation in relation (conditions)",
       "description": "Apply contradictory demands to different objects or under different conditions.",
       "guidelines": [
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "id": "04",
+      "id": 4,
       "name": "Separation in direction",
       "description": "Apply contradictory demands in different directions of action.",
       "guidelines": [
@@ -69,7 +69,7 @@
       ]
     },
     {
-      "id": "05",
+      "id": 5,
       "name": "Separation at the system level",
       "description": "Apply contradictory demands at different levels of the system.",
       "guidelines": [

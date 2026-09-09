@@ -1,6 +1,6 @@
 import pytest
 
-from pytriz.schemas.contradictions import Parameter, Principle
+from pytriz.schemas.contradictions import Parameter, Principle, Separation
 from pytriz.store import TRIZStore
 
 
@@ -87,3 +87,34 @@ def test_get_principle_by_name(store: TRIZStore):
         assert False, "Expected ValueError for non-existent principle name"
     except ValueError as e:
         assert str(e) == "Principle with name 'NonExistentPrinciple' not found"
+
+
+def test_get_all_separations(store: TRIZStore):
+    separations = store.get_all_separations()
+    assert isinstance(separations, list)
+    assert all(isinstance(s, Separation) for s in separations)
+    assert [s.id for s in separations] == ["01", "02", "03", "04", "05"]
+
+
+def test_get_separation_resolves_principles(store: TRIZStore):
+    separation = store.get_separation_by_id("01")
+    assert separation.name == "Separation in space"
+    assert all(isinstance(principle, Principle) for principle in separation.principles)
+    assert [principle.id for principle in separation.principles] == [1, 2, 3, 7, 4, 17]
+    assert separation.principles[0] is store.get_principle_by_id(1)
+
+    with pytest.raises(ValueError, match="Separation with id 'unknown' not found"):
+        store.get_separation_by_id("unknown")
+
+
+def test_get_separation_by_name(store: TRIZStore):
+    separation = store.get_separation_by_name("Separation in time")
+    assert separation.id == "02"
+
+    with pytest.raises(ValueError, match="Separation with name 'Unknown' not found"):
+        store.get_separation_by_name("Unknown")
+
+
+async def test_search_separations(store: TRIZStore):
+    results = await store.search_separations("different moments in time", top_k=1)
+    assert [separation.id for separation in results] == ["02"]

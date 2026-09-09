@@ -1,6 +1,7 @@
 import pytest
-from pytriz.store import TRIZStore
+
 from pytriz.schemas.contradictions import Parameter, Principle
+from pytriz.store import TRIZStore
 
 
 @pytest.fixture(scope="module")

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Reorganized tests to mirror the package structure: renamed `test_contradictions.py` to `test_store.py` and moved retriever tests to `tests/core/`
+
 ## [0.3.0] - 2026-07-01
 
 ### Added
